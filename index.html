@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prayer Times</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+    :root {
+      --clr-light-bg: rgba(255 255 255 / 0.12);
+      --clr-light-text: #f0f0f0;
+      --clr-light-accent: #ffd700;
+      --clr-dark-bg: rgba(20 20 30 / 0.5);
+      --clr-dark-text: #ddd;
+      --clr-dark-accent: #f0b429;
+      --primary-font: 'Poppins', sans-serif;
+      --transition: 0.3s ease;
+    }
+    body {
+      margin: 0;
+      font-family: var(--primary-font);
+      background: linear-gradient(135deg, #4a90e2, #50e3c2);
+      color: var(--clr-light-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      transition: background var(--transition);
+    }
+    body.dark {
+      background: linear-gradient(135deg, #12121b, #1e1e2f);
+      color: var(--clr-dark-text);
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-weight: 600;
+      font-size: 2.2rem;
+      user-select: none;
+      text-align: center;
+      text-shadow: 0 0 8px rgba(0,0,0,0.15);
+    }
+    .top-bar {
+      width: 320px;
+      max-width: 95vw;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      user-select: none;
+    }
+    .btn {
+      background: var(--clr-light-bg);
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      color: var(--clr-light-text);
+      box-shadow: 0 8px 30px rgba(255 255 255 / 0.1);
+      transition: all 0.3s ease;
+    }
+    body.dark .btn {
+      background: var(--clr-dark-bg);
+      color: var(--clr-dark-text);
+      box-shadow: 0 8px 30px rgba(0 0 0 / 0.3);
+    }
+    .btn:hover {
+      filter: brightness(1.2);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(255 255 255 / 0.3);
+    }
+    body.dark .btn:hover {
+      filter: brightness(1.5);
+      box-shadow: 0 12px 40px rgba(255 255 255 / 0.15);
+    }
+    .container {
+      background: var(--clr-light-bg);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0 0 0 / 0.15);
+      padding: 25px 25px 40px;
+      width: 320px;
+      max-width: 95vw;
+      user-select: none;
+      transition: background var(--transition), box-shadow var(--transition);
+    }
+    body.dark .container {
+      background: var(--clr-dark-bg);
+      box-shadow: 0 8px 40px rgba(0 0 0 / 0.6);
+    }
+    .location, .timezone {
+      font-size: 1rem;
+      opacity: 0.8;
+      margin-bottom: 6px;
+      text-align: center;
+      user-select: text;
+    }
+    .hijri-date {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .events {
+      background: rgba(255 255 255 / 0.1);
+      padding: 8px 12px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      text-align: center;
+      color: var(--clr-light-accent);
+      user-select: text;
+      display: none;
+    }
+    body.dark .events {
+      background: rgba(255 255 255 / 0.12);
+      color: var(--clr-dark-accent);
+    }
+    .prayer-times {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      row-gap: 14px;
+      column-gap: 10px;
+      margin-bottom: 20px;
+    }
+    .prayer-name {
+      font-weight: 600;
+      font-size: 1.05rem;
+      align-self: center;
+    }
+    .prayer-time {
+      font-weight: 400;
+      font-size: 1.1rem;
+      text-align: right;
+      user-select: text;
+      transition: color 0.3s ease;
+    }
+    .prayer-time.current {
+      color: var(--clr-light-accent);
+      font-weight: 700;
+      filter: drop-shadow(0 0 3px var(--clr-light-accent));
+    }
+    body.dark .prayer-time.current {
+      color: var(--clr-dark-accent);
+      filter: drop-shadow(0 0 4px var(--clr-dark-accent));
+    }
+    .countdown {
+      font-size: 1.35rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 25px;
+      user-select: none;
+      animation: fadeIn 1s ease;
+    }
+    /* Qibla compass container */
+    .qibla-container {
+      width: 160px;
+      height: 160px;
+      margin: 0 auto 30px;
+      border-radius: 50%;
+      background: var(--clr-light-bg);
+      backdrop-filter: blur(15px);
+      box-shadow: 0 8px 30px rgba(0 0 0 / 0.15);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      transition: background var(--transition);
+      user-select: none;
+    }
+    body.dark .qibla-container {
+      background: var(--clr-dark-bg);
+      box-shadow: 0 8px 30px rgba(0 0 0 / 0.6);
+    }
+    .compass {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 6px solid var(--clr-light-accent);
+      position: relative;
+      box-shadow: 0 0 15px var(--clr-light-accent);
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    body.dark .compass {
+      border-color: var(--clr-dark-accent);
+      box-shadow: 0 0 18px var(--clr-dark-accent);
+    }
+    .needle {
+      width: 6px;
+      height: 70px;
+      background: var(--clr-light-accent);
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform-origin: 50% 100%;
+      border-radius: 3px;
+      box-shadow: 0 0 5px var(--clr-light-accent);
+      transition: background var(--transition), box-shadow var(--transition);
+      pointer-events: none;
+    }
+    body.dark .needle {
+      background: var(--clr-dark-accent);
+      box-shadow: 0 0 8px var(--clr-dark-accent);
+    }
+    /* Language and mode toggles container */
+    .toggles {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    /* Month calendar */
+    .calendar {
+      background: var(--clr-light-bg);
+      backdrop-filter: blur(15px);
+      border-radius: 15px;
+      box-shadow: 0 8px 30px rgba(0 0 0 / 0.15);
+      padding: 15px;
+      width: 320px;
+      max-width: 95vw;
+      user-select: none;
+      overflow-x: auto;
+      transition: background var(--transition), box-shadow var(--transition);
+    }
+    body.dark .calendar {
+      background: var(--clr-dark-bg);
+      box-shadow: 0 8px 40px rgba(0 0 0 / 0.6);
+    }
+    .calendar table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.85rem;
+    }
+    .calendar th, .calendar td {
+      padding: 6px 5px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255 255 255 / 0.2);
+    }
+    .calendar th {
+      font-weight: 700;
+      color: var(--clr-light-accent);
+    }
+    body.dark .calendar th {
+      color: var(--clr-dark-accent);
+    }
+    .calendar td.prayer-cell {
+      cursor: default;
+      white-space: nowrap;
+      font-weight: 400;
+      user-select: text;
+    }
+    .calendar td.today {
+      background: var(--clr-light-accent);
+      color: #111;
+      font-weight: 700;
+      border-radius: 8px;
+      box-shadow: 0 0 8px var(--clr-light-accent);
+      transition: background-color 0.3s ease;
+    }
+    body.dark .calendar td.today {
+      background: var(--clr-dark-accent);
+      color: #222;
+      box-shadow: 0 0 10px var(--clr-dark-accent);
+    }
+    /* Animations */
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+    /* Notification */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--clr-light-accent);
+      color: #111;
+      padding: 12px 18px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(255 215 0, 0.7);
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(-20px);
+      pointer-events: none;
+      user-select: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      z-index: 9999;
+    }
+    .notification.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    /* Responsive */
+    @media (max-width: 400px) {
+      .container, .calendar {
+        width: 95vw;
+      }
+      .top-bar {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .btn {
+        width: 100%;
+      }
+      .prayer-times {
+        grid-template-columns: 1fr;
+      }
+      .compass {
+        width: 100px;
+        height: 100px;
+        border-width: 4px;
+      }
+      .needle {
+        height: 55px;
+        width: 4px;
+        top: 15px;
+      }
+      .qibla-container {
+        width: 120px;
+        height: 120px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Prayer Times</h1>
+
+  <div class="top-bar toggles" role="region" aria-label="Language and theme toggles">
+    <button class="btn" id="toggle-lang" title="Toggle Language" aria-pressed="false">عربي</button>
+    <button class="btn" id="toggle-theme" title="Toggle Dark/Light Mode" aria-pressed="false">🌙</button>
+    <select id="adhan-select" class="btn" title="Select Adhan Reciter" aria-label="Select Adhan Reciter">
+      <option value="0" selected>Alafasy</option>
+      <option value="1">Minshawi</option>
+    </select>
+  </div>
+
+  <main class="container" role="main" aria-label="Prayer times and related information">
+
+    <div class="location" id="location" aria-live="polite" aria-atomic="true">Locating...</div>
+    <div class="timezone" id="timezone" aria-live="polite" aria-atomic="true"></div>
+    <div class="hijri-date" id="hijri-date" aria-live="polite" aria-atomic="true">Loading Hijri date...</div>
+    <div class="events" id="events" aria-live="polite" aria-atomic="true"></div>
+
+    <section class="prayer-times" id="prayer-times" aria-live="polite" aria-label="Daily prayer times"></section>
+
+    <div class="countdown" id="countdown" aria-live="polite" aria-atomic="true" aria-label="Countdown until next prayer">Loading countdown...</div>
+
+    <section class="qibla-container" aria-label="Qibla direction compass">
+      <div class="compass" id="compass">
+        <div class="needle" id="needle"></div>
+      </div>
+    </section>
+
+    <section class="calendar" id="calendar" aria-label="Monthly prayer times calendar"></section>
+
+  </main>
+
+  <div class="notification" id="notification" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- Embedded Adhan Audios -->
+  <audio id="adhan0" preload="auto" src="https://cdn.islamic.network/quran/audio/128/ar.alafasy/1.mp3"></audio>
+  <audio id="adhan1" preload="auto" src="https://cdn.islamic.network/quran/audio/128/ar.minshawi/1.mp3"></audio>
+
+  <script>
+(() => {
+  'use strict';
+
+  // Elements
+  const locationEl = document.getElementById('location');
+  const timezoneEl = document.getElementById('timezone');
+  const hijriEl = document.getElementById('hijri-date');
+  const eventsEl = document.getElementById('events');
+  const prayerTimesEl = document.getElementById('prayer-times');
+  const countdownEl = document.getElementById('countdown');
+  const calendarEl = document.getElementById('calendar');
+  const notificationEl = document.getElementById('notification');
+  const compassNeedle = document.getElementById('needle');
+
+  const toggleLangBtn = document.getElementById('toggle-lang');
+  const toggleThemeBtn = document.getElementById('toggle-theme');
+  const adhanSelect = document.getElementById('adhan-select');
+
+  const adhanAudios = [
+    document.getElementById('adhan0'),
+    document.getElementById('adhan1')
+  ];
+
+  // State
+  let prayerTimes = {};
+  let hijriDate = {};
+  let timezone = '';
+  let currentLang = 'en';
+  let isDark = false;
+  let nextPrayerIndex = -1;
+  let countdownTimer = null;
+  let refreshTimer = null;
+  let userLat = null;
+  let userLon = null;
+
+  // Prayer names mapping
+  const prayerNames = {
+    en: ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'],
+    ar: ['الفجر', 'الشروق', 'الظهر', 'العصر', 'المغرب', 'العشاء']
+  };
+
+  // API calculation method (Umm Al-Qura)
+  const apiMethod = 4;
+
+  // Format time string "HH:mm"
+  function formatTime24(date) {
+    const h = date.getHours().toString().padStart(2,'0');
+    const m = date.getMinutes().toString().padStart(2,'0');
+    return `${h}:${m}`;
+  }
+
+  // Parse prayer time string to Date object for today in timezone
+  function parsePrayerTime(timeStr, dayOffset = 0) {
+    // Extract HH:mm from timeStr like "05:30"
+    const [h, m] = timeStr.split(':').map(Number);
+    const now = new Date();
+    // Use toLocaleString to get date in timezone, then construct Date object with time
+    const dateInTzStr = now.toLocaleDateString('en-US', {timeZone: timezone});
+    const [month, day, year] = dateInTzStr.split('/');
+    const dt = new Date(`${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}T${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:00`);
+    dt.setDate(dt.getDate() + dayOffset);
+    return dt;
+  }
+
+  // Find next prayer index and return its Date object
+  function findNextPrayerIndex() {
+    const now = new Date();
+    for(let i=0; i<prayerNames.en.length; i++) {
+      const pt = parsePrayerTime(prayerTimes[prayerNames.en[i]]);
+      if(pt > now) return i;
+    }
+    return 0; // Next prayer is tomorrow Fajr
+  }
+
+  // Display prayer times in UI
+  function displayPrayerTimes() {
+    prayerTimesEl.innerHTML = '';
+    for(let i=0; i<prayerNames.en.length; i++) {
+      const enName = prayerNames.en[i];
+      const arName = prayerNames.ar[i];
+      const time = prayerTimes[enName];
+      if(!time) continue;
+      const isCurrent = (i === nextPrayerIndex);
+      const nameText = currentLang === 'ar' ? arName : enName;
+      prayerTimesEl.insertAdjacentHTML('beforeend', `
+        <div class="prayer-name">${nameText}</div>
+        <div class="prayer-time${isCurrent ? ' current' : ''}">${time}</div>
+      `);
+    }
+  }
+
+  // Display Hijri date
+  function displayHijri() {
+    if(!hijriDate || !hijriDate.hijri) {
+      hijriEl.textContent = currentLang === 'ar' ? 'لا توجد بيانات تاريخ هجري' : 'No Hijri date data';
+      return;
+    }
+    const hd = hijriDate.hijri;
+    const monthsAr = ['محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'];
+    const monthsEn = ['Muharram', 'Safar', 'Rabi I', 'Rabi II', 'Jumada I', 'Jumada II', 'Rajab', 'Sha‘ban', 'Ramadan', 'Shawwal', 'Dhu al-Qi‘dah', 'Dhu al-Hijjah'];
+
+    const day = hd.day;
+    const month = currentLang === 'ar' ? monthsAr[hd.month.number - 1] : monthsEn[hd.month.number - 1];
+    const year = hd.year;
+
+    hijriEl.textContent = currentLang === 'ar'
+      ? `التاريخ الهجري: ${day} ${month} ${year}`
+      : `Hijri Date: ${day} ${month} ${year}`;
+  }
+
+  // Display timezone info
+  function displayTimezone() {
+    timezoneEl.textContent = currentLang === 'ar'
+      ? `التوقيت: ${timezone}`
+      : `Timezone: ${timezone}`;
+  }
+
+  // Display location info
+  function displayLocation(lat, lon) {
+    const latFixed = lat.toFixed(4);
+    const lonFixed = lon.toFixed(4);
+    locationEl.textContent = currentLang === 'ar'
+      ? `موقعك: خط العرض ${latFixed}، خط الطول ${lonFixed}`
+      : `Your Location: Lat ${latFixed}, Lon ${lonFixed}`;
+  }
+
+  // Display events / notes (empty for now, can add Ramadan, Eid etc)
+  function displayEvents() {
+    eventsEl.style.display = 'none'; // Hide for now; you can add events here if you want
+  }
+
+  // Countdown timer logic
+  function startCountdown() {
+    if(countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      const now = new Date();
+      let nextIndex = findNextPrayerIndex();
+      nextPrayerIndex = nextIndex;
+
+      let nextPrayerNameEn = prayerNames.en[nextIndex];
+      let nextPrayerNameAr = prayerNames.ar[nextIndex];
+      let prayerTimeStr = prayerTimes[nextPrayerNameEn];
+      let prayerTime = parsePrayerTime(prayerTimeStr);
+
+      // If next prayer is Fajr tomorrow, add 1 day
+      if(prayerTime < now) {
+        prayerTime = parsePrayerTime(prayerTimeStr, 1);
+      }
+
+      let diffSec = Math.floor((prayerTime - now) / 1000);
+      if(diffSec < 0) diffSec = 0;
+
+      let h = Math.floor(diffSec / 3600);
+      let m = Math.floor((diffSec % 3600) / 60);
+      let s = diffSec % 60;
+
+      countdownEl.textContent = currentLang === 'ar'
+        ? `الوقت المتبقي لصلاة ${nextPrayerNameAr}: ${h}س ${m}د ${s}ث`
+        : `Time left for ${nextPrayerNameEn}: ${h}h ${m}m ${s}s`;
+
+      displayPrayerTimes();
+
+      if(diffSec === 0) {
+        playAdhan();
+        showNotification(currentLang === 'ar' ? `حان وقت صلاة ${nextPrayerNameAr}` : `It's time for ${nextPrayerNameEn}`);
+      }
+    }, 1000);
+  }
+
+  // Play selected adhan audio
+  function playAdhan() {
+    adhanAudios.forEach(audio => {
+      audio.pause();
+      audio.currentTime = 0;
+    });
+    const selectedIndex = parseInt(adhanSelect.value) || 0;
+    adhanAudios[selectedIndex].play();
+  }
+
+  // Show notification div (in-page)
+  function showNotification(msg) {
+    notificationEl.textContent = msg;
+    notificationEl.classList.add('show');
+    setTimeout(() => notificationEl.classList.remove('show'), 6000);
+  }
+
+  // Request browser notification permission and show notification
+  function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
+  }
+
+  function sendBrowserNotification(msg) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(msg);
+    }
+  }
+
+  // Qibla compass calculation
+  const KABBAH_LAT = 21.422487;
+  const KABBAH_LON = 39.826206;
+
+  // Calculate bearing between two lat/lon points
+  function calculateBearing(lat1, lon1, lat2, lon2) {
+    const toRad = deg => deg * Math.PI / 180;
+    const toDeg = rad => rad * 180 / Math.PI;
+
+    const φ1 = toRad(lat1);
+    const φ2 = toRad(lat2);
+    const Δλ = toRad(lon2 - lon1);
+
+    const y = Math.sin(Δλ) * Math.cos(φ2);
+    const x = Math.cos(φ1)*Math.sin(φ2) -
+              Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+
+    let θ = Math.atan2(y, x);
+    θ = toDeg(θ);
+    return (θ + 360) % 360;
+  }
+
+  // Rotate compass needle
+  function updateCompass(lat, lon, alpha) {
+    // Compass heading (alpha) and bearing to Kaaba
+    const bearing = calculateBearing(lat, lon, KABBAH_LAT, KABBAH_LON);
+    // Calculate difference from device heading to bearing
+    const rotation = bearing - alpha;
+    compassNeedle.style.transform = `rotate(${rotation}deg)`;
+  }
+
+  // Update compass needle without device orientation (fallback)
+  function updateCompassStatic(lat, lon) {
+    const bearing = calculateBearing(lat, lon, KABBAH_LAT, KABBAH_LON);
+    compassNeedle.style.transform = `rotate(${bearing}deg)`;
+  }
+
+  // Build monthly calendar with prayer times for each day
+  async function buildCalendar(lat, lon) {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    // Fetch monthly prayer times from API
+    const url = `https://api.aladhan.com/v1/calendar?latitude=${lat}&longitude=${lon}&method=${apiMethod}&month=${month}&year=${year}`;
+    try {
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.code !== 200 || !json.data) {
+        calendarEl.innerHTML = currentLang === 'ar' ? 'فشل في تحميل تقويم الشهر' : 'Failed to load monthly calendar';
+        return;
+      }
+      const daysData = json.data;
+
+      // Build table HTML
+      let table = `<table role="grid" aria-readonly="true" aria-label="${currentLang === 'ar' ? 'تقويم أوقات الصلاة الشهري' : 'Monthly Prayer Times Calendar'}">
+        <thead>
+          <tr>
+            <th>${currentLang === 'ar' ? 'اليوم' : 'Day'}</th>
+            <th>Fajr</th>
+            <th>Sunrise</th>
+            <th>Dhuhr</th>
+            <th>Asr</th>
+            <th>Maghrib</th>
+            <th>Isha</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      daysData.forEach(day => {
+        const date = new Date(day.date.gregorian.date);
+        const isToday = date.toDateString() === now.toDateString();
+        table += `<tr${isToday ? ' class="today"' : ''}>
+          <td>${date.getDate()}</td>
+          <td class="prayer-cell">${day.timings.Fajr.slice(0,5)}</td>
+          <td class="prayer-cell">${day.timings.Sunrise.slice(0,5)}</td>
+          <td class="prayer-cell">${day.timings.Dhuhr.slice(0,5)}</td>
+          <td class="prayer-cell">${day.timings.Asr.slice(0,5)}</td>
+          <td class="prayer-cell">${day.timings.Maghrib.slice(0,5)}</td>
+          <td class="prayer-cell">${day.timings.Isha.slice(0,5)}</td>
+        </tr>`;
+      });
+
+      table += '</tbody></table>';
+      calendarEl.innerHTML = table;
+
+    } catch (e) {
+      calendarEl.innerHTML = currentLang === 'ar' ? 'خطأ في تحميل تقويم الشهر' : 'Error loading monthly calendar';
+    }
+  }
+
+  // Fetch prayer times and Hijri date from API
+  async function fetchPrayerData(lat, lon) {
+    const now = new Date();
+    const timestamp = Math.floor(now.getTime()/1000);
+    const url = `https://api.aladhan.com/v1/timings/${timestamp}?latitude=${lat}&longitude=${lon}&method=${apiMethod}`;
+    try {
+      const res = await fetch(url);
+      const json = await res.json();
+      if(json.code !== 200 || !json.data) {
+        throw new Error('Failed to fetch prayer times');
+      }
+      prayerTimes = json.data.timings;
+      hijriDate = json.data.date;
+      timezone = json.data.meta.timezone;
+    } catch(e) {
+      locationEl.textContent = currentLang === 'ar' ? 'فشل في جلب أوقات الصلاة' : 'Failed to fetch prayer times';
+    }
+  }
+
+  // Setup all UI and timers
+  async function setup(lat, lon) {
+    userLat = lat;
+    userLon = lon;
+
+    displayLocation(lat, lon);
+    await fetchPrayerData(lat, lon);
+    displayTimezone();
+    displayHijri();
+    displayEvents();
+    displayPrayerTimes();
+    startCountdown();
+    buildCalendar(lat, lon);
+    requestNotificationPermission();
+
+    // Compass using DeviceOrientation API if available
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientationabsolute', e => {
+        if(e.alpha !== null) {
+          updateCompass(lat, lon, e.alpha);
+        }
+      });
+      window.addEventListener('deviceorientation', e => {
+        if(e.alpha !== null) {
+          updateCompass(lat, lon, e.alpha);
+        }
+      });
+    } else {
+      // Fallback: static compass rotation based on user location only
+      updateCompassStatic(lat, lon);
+    }
+  }
+
+  // Language toggle handler
+  toggleLangBtn.addEventListener('click', () => {
+    currentLang = currentLang === 'en' ? 'ar' : 'en';
+    toggleLangBtn.textContent = currentLang === 'en' ? 'عربي' : 'English';
+    toggleLangBtn.setAttribute('aria-pressed', currentLang === 'ar');
+    // Update UI texts
+    document.getElementById('title').textContent = currentLang === 'ar' ? 'أوقات الصلاة' : 'Prayer Times';
+    toggleThemeBtn.title = currentLang === 'ar' ? 'تبديل الوضع الداكن' : 'Toggle Dark Mode';
+    adhanSelect.title = currentLang === 'ar' ? 'اختر مقرئ الأذان' : 'Select Adhan Reciter';
+    displayLocation(userLat, userLon);
+    displayTimezone();
+    displayHijri();
+    displayEvents();
+    displayPrayerTimes();
+    startCountdown();
+    buildCalendar(userLat, userLon);
+  });
+
+  // Dark mode toggle handler
+  toggleThemeBtn.addEventListener('click', () => {
+    isDark = !isDark;
+    document.body.classList.toggle('dark', isDark);
+    toggleThemeBtn.textContent = isDark ? '☀️' : '🌙';
+    toggleThemeBtn.setAttribute('aria-pressed', isDark);
+  });
+
+  // Adhan reciter select handler
+  adhanSelect.addEventListener('change', () => {
+    // Stop any playing audio if changing
+    adhanAudios.forEach(audio => {
+      audio.pause();
+      audio.currentTime = 0;
+    });
+  });
+
+  // Get user location and initialize
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      setup(position.coords.latitude, position.coords.longitude);
+    }, () => {
+      locationEl.textContent = currentLang === 'ar' ? 'تعذر تحديد الموقع' : 'Unable to get location';
+    });
+  } else {
+    locationEl.textContent = currentLang === 'ar' ? 'المتصفح لا يدعم الموقع الجغرافي' : 'Geolocation not supported';
+  }
+})();
+  </script>
+</body>
+</html>
