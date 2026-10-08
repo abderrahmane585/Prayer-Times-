@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prayer Times</title>
 <link rel="icon" type="image/png" href="favicon.png">
-
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Figtree:wght@400;600&display=swap');
 :root{--bg:#0f2a27;--panel:#16372f;--line:#2a5247;--text:#efe9d8;--mute:#9db5a8;--gold:#e3b04b;--font:'Figtree','Amiri',system-ui,sans-serif}
@@ -43,7 +42,8 @@ button,input{font:inherit;color:inherit}
 .dial{width:84px;height:84px;border-radius:50%;border:2px solid var(--gold);position:relative;flex:none}
 .arrow{position:absolute;inset:0;transition:transform .25s}
 .arrow::before{content:"";position:absolute;left:50%;top:7px;width:0;height:0;margin-left:-7px;border:7px solid transparent;border-bottom:34px solid var(--gold);border-top:0}
-.arrow::after{content:"🕋";position:absolute;left:50%;top:-4px;margin-left:-9px;font-size:16px;display:none}
+.dial::after{content:"N";position:absolute;top:-2px;left:50%;transform:translate(-50%,-100%);font-size:.7rem;color:var(--mute)}
+.dial{transition:border-color .2s,box-shadow .2s}.dial.ok{border-color:#58c27d;box-shadow:0 0 14px #58c27d}
 .cal{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
 table{border-collapse:collapse;width:100%;font-size:.82rem;font-variant-numeric:tabular-nums}
 th,td{padding:7px 6px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -85,8 +85,10 @@ tr.today td{background:var(--gold);color:#1a1a12;font-weight:700}
   </section>
 
   <section class="qibla" aria-label="Qibla direction">
-    <div class="dial"><div class="arrow" id="arrow"></div></div>
-    <div><b id="qTitle">Qibla</b><div class="meta" style="text-align:start" id="qText"></div></div>
+    <div class="dial" id="dial"><div class="arrow" id="arrow"></div></div>
+    <div><b id="qTitle">Qibla</b>
+      <div class="meta" style="text-align:start"><span id="qText"></span><br><span id="qStatus"></span></div>
+      <button class="btn" id="compassBtn" hidden style="margin-top:8px"></button></div>
   </section>
 
   <section class="cal" id="cal" aria-label="Monthly calendar"></section>
@@ -212,7 +214,7 @@ function renderStatic(){
   $('lang').textContent = lang==='en'?'عربي':'English';
   if(lat!==null) $('loc').textContent = t().loc(lat.toFixed(3),lon.toFixed(3));
   if(hijriData) $('hijri').textContent=`${hijriData.day} ${MONTHS[lang][hijriData.month.number-1]} ${hijriData.year}`;
-  const q=bearing(); $('qTitle').textContent=t().qibla; $('qText').textContent=t().qt(Math.round(q));
+  renderQibla();
   setStatus();
   renderRows();
 }
@@ -250,27 +252,78 @@ function tick(){
 }
 
 /* ---------- Qibla ---------- */
+let located=false, heading=null, shown=0;
+const QT={
+  en:{title:'Qibla',deg:d=>`${d}° from north`,need:'Allow location access to find the Qibla.',enable:'Enable compass',
+      none:'No compass sensor found. The arrow is correct only if the top of the screen faces north.',https:'The compass needs a secure (https) page.',
+      live:'Turn until the arrow points up.',ok:'You are facing the Qibla.'},
+  ar:{title:'القبلة',deg:d=>`${d}° من الشمال`,need:'اسمح بالوصول إلى الموقع لتحديد القبلة.',enable:'تفعيل البوصلة',
+      none:'لا يوجد حساس بوصلة. السهم صحيح فقط إذا كان أعلى الشاشة نحو الشمال.',https:'البوصلة تحتاج صفحة آمنة (https).',
+      live:'دُر حتى يشير السهم للأعلى.',ok:'أنت تواجه القبلة.'}
+};
+const qt=()=>QT[lang];
 function bearing(){
-  if(lat===null) return 0;
+  if(!located) return null;
   const r=d=>d*Math.PI/180, [la,lo]=KAABA, dl=r(lo-lon);
   const y=Math.sin(dl)*Math.cos(r(la));
   const x=Math.cos(r(lat))*Math.sin(r(la))-Math.sin(r(lat))*Math.cos(r(la))*Math.cos(dl);
   return (Math.atan2(y,x)*180/Math.PI+360)%360;
 }
-let heading=0;
-function rotate(){ $('arrow').style.transform=`rotate(${bearing()-heading}deg)`; }
+function renderQibla(){
+  $('qTitle').textContent=qt().title;
+  $('compassBtn').textContent=qt().enable;
+  const b=bearing();
+  $('qText').textContent = b===null ? qt().need : qt().deg(Math.round(b));
+  rotate();
+}
+function rotate(){
+  const b=bearing(), st=$('qStatus');
+  if(b===null){ st.textContent=''; return; }
+  const target=b-(heading||0);
+  // turn along the shortest path and smooth sensor jitter
+  const diff=((target-shown+540)%360)-180;
+  shown+=diff*(heading===null?1:0.25);
+  $('arrow').style.transform=`rotate(${shown}deg)`;
+  const off=Math.abs(((target+540)%360)-180);
+  const ok=heading!==null && off<5;
+  $('dial').classList.toggle('ok',ok);
+  st.textContent = !window.isSecureContext ? qt().https : heading===null ? qt().none : ok ? qt().ok : qt().live;
+}
+// Tilt-compensated compass heading (W3C method), works when the phone is not flat
+function tiltHeading(alpha,beta,gamma){
+  const d=Math.PI/180,a=alpha*d,b=beta*d,g=gamma*d;
+  const cA=Math.cos(a),sA=Math.sin(a),sB=Math.sin(b),cG=Math.cos(g),sG=Math.sin(g),cB=Math.cos(b);
+  const rA=-cA*sG-sA*sB*cG, rB=-sA*sG+cA*sB*cG;
+  let h=Math.atan(rA/rB)*180/Math.PI;
+  if(rB<0) h+=180; else if(rA<0) h+=360;
+  return h;
+}
+function setHeading(h){
+  if(h===null||h===undefined||isNaN(h)) return;
+  const screenAngle=(screen.orientation&&screen.orientation.angle)||0;
+  heading=(h+screenAngle+360)%360;
+  rotate();
+}
+function onAbs(e){ if(e.alpha!==null) setHeading(tiltHeading(e.alpha,e.beta,e.gamma)); }
 function onOrient(e){
-  const h = e.webkitCompassHeading ?? (e.absolute && e.alpha!==null ? 360-e.alpha : null);
-  if(h!==null && h!==undefined){ heading=h; rotate(); }
+  if(typeof e.webkitCompassHeading==='number') setHeading(e.webkitCompassHeading);      // iOS
+  else if(e.absolute && e.alpha!==null) setHeading(tiltHeading(e.alpha,e.beta,e.gamma)); // Android fallback
 }
 function startCompass(){
-  rotate();
-  if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
-    // iOS needs a tap
-    document.body.addEventListener('click',()=>DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted') addEventListener('deviceorientation',onOrient); }).catch(()=>{}),{once:true});
+  renderQibla();
+  if(!window.isSecureContext || typeof DeviceOrientationEvent==='undefined') return;
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){ // iOS: needs a tap
+    const btn=$('compassBtn'); btn.hidden=false;
+    btn.onclick=async()=>{
+      try{
+        if(await DeviceOrientationEvent.requestPermission()==='granted'){
+          addEventListener('deviceorientation',onOrient,true); btn.hidden=true;
+        }
+      }catch(e){}
+    };
   }else{
-    addEventListener('deviceorientationabsolute',onOrient);
-    addEventListener('deviceorientation',onOrient);
+    addEventListener('deviceorientationabsolute',onAbs,true);
+    addEventListener('deviceorientation',onOrient,true);
   }
 }
 
@@ -280,7 +333,7 @@ $('theme').onclick=()=>{ const l=document.body.classList.toggle('light'); $('the
 
 /* ---------- Init ---------- */
 async function start(la,lo,denied){
-  lat=la; lon=lo;
+  lat=la; lon=lo; located=!denied;
   await loadToday();
   renderStatic();
   if(denied) $('loc').textContent=t().noloc;
